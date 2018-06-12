@@ -33,4 +33,4 @@ In order to make the system work you have to:
 5. Set as a cron job SQL query: **UPDATE users SET credits='48'** 
 
 ## Special thanks to
-[Fullcalendar](https://github.com/fullcalendar) and [PHPMailer](https://github.com/PHPMailer/PHPMailer)
+[FullCalendar](https://github.com/fullcalendar) and [PHPMailer](https://github.com/PHPMailer/PHPMailer)
