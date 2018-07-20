@@ -14,6 +14,23 @@ function clearResForm(){
     $("input:checkbox[name='gpusNeed']").prop("checked", false);
     $("input:checkbox[name='machine_name[]']").prop("checked", false);
     $("input:checkbox[exclusive-check='exclusive-check']").prop("checked", false);
+    $("input:checkbox[allday-check='allday-check']").prop("checked", false);
+    $("#endTime").prop("disabled", false);
+    $("#startTime").prop("disabled", false);
+}
+
+
+
+function disableToFields(){
+    $("input:checkbox[allday-check='allday-check']").change(function() {
+        if($(this).is(":checked")) {
+            $("#endTime").prop("disabled", true);
+            $("#startTime").prop("disabled", true);
+        }else{
+            $("#endTime").prop("disabled", false);
+            $("#startTime").prop("disabled", false);
+        }
+    });
 }
 
 
@@ -180,6 +197,10 @@ function eventClick(event){
              $("input:checkbox[exclusive-check='exclusive-check']").prop("checked", true);
         }
 
+        if(event.allDay === true){
+             $("input:checkbox[allday-check='allday-check']").prop("checked", true);
+        }
+
         var startDate = (event.d1).split("-");
         var endDate = (event.d2).split("-");
         
@@ -190,7 +211,7 @@ function eventClick(event){
         endDate = (endDate[2]+"/"+endDate[1]+"/"+endDate[0]);
         var startTime = event.t1;
         var endTime = event.t2;
-        
+
         $("#startTime").val(event.t1);
         $("#endTime").val(event.t2);
 
@@ -398,8 +419,6 @@ function showEvents(start, end, timezone, callback, uname){
 
                 events_array.push({key:eventID, value:reservation.reserved_machines});
 
-                var allDayEvent = false;
-
                 var excl = "(non-exclusive)";
 
                 if(reservation.exclusive === "1"){
@@ -420,16 +439,20 @@ function showEvents(start, end, timezone, callback, uname){
 
                 var startDateTime = (reservation.startDateTime).split(" "); 
                 var endDateTime = (reservation.endDateTime).split(" "); 
-                
-                /* Checking if event is all day */
-                if((startDateTime[1] === endDateTime[1]) && ((startDate_year === endDate_year) && (startDate_month === endDate_month) && ((parseInt(startDate_day)+1) === parseInt(endDate_day)))){
-                    allDayEvent = true;
-                }
 
                 var bool_edit = false;
 
                 if(reservation.username === uname){
                     bool_edit = true;    
+                }
+
+                var allDayEvent = reservation.allday;
+
+                // Checking if reservation is allday
+                if(allDayEvent === "1"){
+                    allDayEvent = true;
+                }else{
+                    allDayEvent = false;
                 }
 
                 reservationsToCal.push({

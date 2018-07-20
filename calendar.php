@@ -5,6 +5,8 @@
 		header('Location: index.php');
 	}
 
+
+
 	if(isset($_POST['machinesColors'])){
 		$conn = require_once('config.php');
 
@@ -81,7 +83,7 @@
         $conn = require_once('config.php');
 
         $today = date("Y-m-d"); 
-        $sql = "SELECT reservations.id, username, datetime_start, datetime_end, exclusive, event_title, GROUP_CONCAT(DISTINCT machines.id) AS machines_number, GROUP_CONCAT(DISTINCT machines.name) AS machines FROM reservations LEFT JOIN machines_reservations ON reservations.id = machines_reservations.reservation_id LEFT JOIN machines ON machines_reservations.machine_id = machines.id GROUP BY reservations.id";
+        $sql = "SELECT reservations.id, username, datetime_start, datetime_end, exclusive, all_day, event_title, GROUP_CONCAT(DISTINCT machines.id) AS machines_number, GROUP_CONCAT(DISTINCT machines.name) AS machines FROM reservations LEFT JOIN machines_reservations ON reservations.id = machines_reservations.reservation_id LEFT JOIN machines ON machines_reservations.machine_id = machines.id GROUP BY reservations.id";
 
         $result = mysqli_query($conn, $sql);
         $allReservations = array();
@@ -95,6 +97,7 @@
             $addReservation->username = $reservation['username'];
             $addReservation->title = $reservation['event_title'];
             $addReservation->exclusive = $reservation['exclusive'];
+            $addReservation->allday = $reservation['all_day'];
             $addReservation->reserved_machines = str_replace(",", " ", $reservation['machines']);
             $addReservation->machines_numbers = str_replace(",", " ", $reservation['machines_number']);
             
@@ -118,28 +121,49 @@
 
         $conn = require_once('config.php');
 
-        /* Form values */
+        // Form values 
         $title = $_POST['title'];
         
-        $start_date = $_POST['startDate'];
-        $end_date = $_POST['endDate'];
         
-        /* Edit time to match sql standards */
-        $start_time = $_POST['startTime'];    
-        $end_time = $_POST['endTime'];
-        $start_time_parts = explode(":", $start_time);
-        $end_time_parts = explode(":", $end_time);
-        $start_time = $start_time_parts[0].":".$start_time_parts[1];
-        $end_time = $end_time_parts[0].":".$end_time_parts[1];
-        
+		// Process start-end date and time 
+		$start_date = $_POST['startDate'];
         $tmp_startdate = explode("/", $start_date);
-        $tmp_enddate = explode("/", $end_date);
-        $start_date = $tmp_startdate[2]."-".$tmp_startdate[1]."-".$tmp_startdate[0];
-        $end_date = $tmp_enddate[2]."-".$tmp_enddate[1]."-".$tmp_enddate[0];
-        
-        $datetime_start = $start_date." ".$start_time;
-        $datetime_end = $end_date." ".$end_time;
+        $start_date = $tmp_startdate[2]."-".$tmp_startdate[1]."-".$tmp_startdate[0];			
 
+		$end_date = $_POST['endDate'];
+		$tmp_enddate = explode("/", $end_date);
+        $end_date = $tmp_enddate[2]."-".$tmp_enddate[1]."-".$tmp_enddate[0];
+
+
+		// All day event
+        $allday = '0';
+        if(isset($_POST['allday']) && $_POST['allday'] === "1"){
+            $allday = $_POST['allday'];
+            $start_time = "00:00";
+			$end_time = "00:00";
+        }else{
+        	$start_time = $_POST['startTime'];
+			$start_time_parts = explode(":", $start_time);
+			$start_time = $start_time_parts[0].":".$start_time_parts[1];
+
+        	$end_time = $_POST['endTime'];	
+			$end_time_parts = explode(":", $end_time);
+	        $end_time = $end_time_parts[0].":".$end_time_parts[1];
+        }
+		
+		// Other case of all day (select from the calendar without clicking allday button)
+		if(($start_time === $end_time) && 
+        		($tmp_startdate[2] === $tmp_enddate[2]) && 
+        		($tmp_startdate[1] === $tmp_startdate[1])  && 
+        		($tmp_startdate[0] < $tmp_enddate[0])) {
+        			$allday = '1';
+    	}
+
+        $datetime_start = $start_date." ".$start_time;
+		$datetime_end = $end_date." ".$end_time;     
+
+
+		// Exclusive
         $exclusive = '0';
         if(isset($_POST['exclusive'])){
             $exclusive = $_POST['exclusive'];
@@ -203,7 +227,7 @@
                 /* Check if the user has already made the same reservation on the same machines (or some included) */
                 /* Create the reservation */
 
-				$sql = "INSERT INTO reservations (event_title, username, datetime_start, datetime_end, all_day, exclusive, consumed_credits) VALUES ('$title', '$username', '$datetime_start', '$datetime_end', '0', '$exclusive', ";
+				$sql = "INSERT INTO reservations (event_title, username, datetime_start, datetime_end, all_day, exclusive, consumed_credits) VALUES ('$title', '$username', '$datetime_start', '$datetime_end', $allday, '$exclusive', ";
 
 				$reservation_id = 0;
 
@@ -248,7 +272,7 @@
                 $reservationID = $_POST['resID'];
 
                 /* SQL Query for update */
-                $sql_update = "UPDATE reservations SET event_title='$title', datetime_start='$datetime_start', datetime_end='$datetime_end', all_day='0', exclusive='$exclusive'";
+                $sql_update = "UPDATE reservations SET event_title='$title', datetime_start='$datetime_start', datetime_end='$datetime_end', all_day=$allday, exclusive='$exclusive'";
 
                 if($exclusive == '1'){
                     /* Get consumed credits of current reservation */
@@ -374,7 +398,7 @@
             	$reservationID = $_POST['resID'];
 
             	/* SQL Query for update */
-                $sql_update = "UPDATE reservations SET event_title='$title', datetime_start='$datetime_start', datetime_end='$datetime_end', all_day='0', exclusive='$exclusive'";
+                $sql_update = "UPDATE reservations SET event_title='$title', datetime_start='$datetime_start', datetime_end='$datetime_end', all_day=$allDay, exclusive='$exclusive'";
 
                 $consumeCredits = 0;
                 $message = "edit_change_from_exclusive";
@@ -468,7 +492,7 @@
 <body class="not-home" style="margin-top:55px">
 	<div class="colored-navbar-brand">
 		<header id="header" class="overflow-x-hidden-xss">
-            <?php require_once('nav_res.php'); ?>
+            <?php require_once('nav_carv_res.php'); ?>
 		</header>
 		<div class="clear"></div>	
 
@@ -637,11 +661,16 @@
                                               </select>
                                           </div>
                                       </div>
-                                      <div style="width:68%">
-                                        <div class="checkbox-block font-icon-checkbox" style="float:right; margin-top:-32px">
-                                            <input id="amenities-checkbox-0" class="allDay" exclusive-check="exclusive-check" type="checkbox" name="exclusive" value="1"/>
-                                            <label for="amenities-checkbox-0"><strong style="font-size:18px;">Exclusive</strong></label>
-                                        </div>
+								      <div style="width:70%; margin-top:-13px;">
+										<div class="checkbox-block font-icon-checkbox" style="float:right; margin-top:-32px">
+										    <input id="amenities-checkbox-0" class="allDay" exclusive-check="exclusive-check" type="checkbox" name="exclusive" value="1"/>
+					                        <label for="amenities-checkbox-0"><strong style="font-size:18px;">Exclusive</strong></label>
+
+					                        <br>
+
+										    <input style="margin-top:10px;" id="allday-check" class="allDay" type="checkbox" allday-check="allday-check" name="allday" value="1" onclick="disableToFields()"/>
+										    <label for="amenities-checkbox-1"><strong style="font-size:18px;">All Day</strong></label>
+										</div>
                                       </div>
                                     </div>
                                 </div>
@@ -796,9 +825,11 @@
                     </div>
                     <!---------------------------------- End modal ------------------------------------->
                     
+                    
+
                     <script>
                         $('#calendar').fullCalendar({
-                            height:1219,
+                    		aspectRatio:1,       
                             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
                             scrollTime: '08:00',
                             timeFormat: 'HH:mm',
