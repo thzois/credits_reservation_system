@@ -120,12 +120,8 @@ require_once('head.php');
                                         $row = mysqli_fetch_assoc($result);
                                         $credits = $row['credits'];
                                         if (mysqli_num_rows($result) > 0) {
-                                            if($credits > 0){
-                                                    $_SESSION['username'] = $user;
-                                                    echo '<script>window.location = "calendar.php";</script>';
-                                            }else{
-                                                    echo '<p id="wrongAccount">NOT enough credits!</p>';
-                                            }
+                                        	$_SESSION['username'] = $user;
+                                        	echo '<script>window.location = "calendar.php";</script>';
                                         }
                                     }
                                 }else{
